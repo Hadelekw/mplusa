@@ -1,9 +1,11 @@
 import math
 import numpy as np
+
 from numbers import Real
+import string
 
 
-def add(*args) -> Real:
+def add(*args) -> float:
     if -math.inf in args:
         raise ValueError(
             'Minplus.add: value out of domain.'
@@ -11,7 +13,7 @@ def add(*args) -> Real:
     return min(args)
 
 
-def mult(*args) -> Real:
+def mult(*args) -> float:
     if -math.inf in args:
         raise ValueError(
             'Minplus.mult: value out of domain.'
@@ -50,8 +52,8 @@ def mult_matrices(A : np.ndarray,
     return result
 
 
-def modulo(a : Real,
-           t : int) -> Real:
+def modulo(a : float,
+           t : int) -> float:
     if a < 0 or t < 0:
         raise ValueError(
             'Minplus.modulo: modulo operation is only defined for positive numbers.'
@@ -92,8 +94,8 @@ def modulo_matrices(A : np.ndarray,
     return result
 
 
-def power(a : Real,
-          k : int) -> Real:
+def power(a : float,
+          k : int) -> float:
     return mult(*[a for _ in range(k)])
 
 
@@ -162,7 +164,7 @@ class Polynomial:
     def __call__(self, x : float) -> float:
         return add(*[mult(coefficient, power(x, i)) for i, coefficient in enumerate(self.coefficients)])
 
-    def get_lines(self) -> list[tuple[float]]:
+    def get_lines(self) -> list[tuple]:
         """ Returns the a and b values of standard linear functions building the polynomial in form of y = ax + b. """
         return [(a, b) for a, b in enumerate(self.coefficients) if b < math.inf]
 
@@ -177,3 +179,42 @@ class Polynomial:
                 if a * x + c == self(x):
                     result.append(x)
         return list(set(result))
+
+
+class MultiVariablePolynomial:
+
+    def __init__(self, coefficients : np.ndarray) -> None:
+        if len(set(coefficients.shape)) > 1:
+            raise ValueError('Coefficient matrix not square.')
+        self.coefficients = coefficients
+        self.variable_count = len(self.coefficients.shape)
+        self._symbols = string.ascii_lowercase
+
+    def __call__(self, *variables : float) -> float:
+        if len(variables) != self.variable_count:
+            raise ValueError('The amount of variables and coefficients differs.')
+        result = [math.inf]
+        for indices, coefficient in np.ndenumerate(self.coefficients):
+            powers = []
+            for variable_index, i in enumerate(indices):
+                powers.append(power(variables[variable_index], i))
+            result.append(mult(coefficient, *powers))
+        result = add(*result)
+        return result
+
+    def __str__(self) -> str:
+        result = ''
+        for indices, coefficient in np.ndenumerate(self.coefficients):
+            if coefficient.is_integer():
+                result += '(' + str(int(coefficient))
+            elif coefficient < math.inf:
+                result += '(' + str(coefficient)
+            else:
+                result += '(∞'
+            for variable_index, i in enumerate(indices):
+                if i > 1:
+                    result += ' * ' + self._symbols[variable_index] + '^' + str(i)
+                elif i == 1:
+                    result += ' * ' + self._symbols[variable_index]
+            result += ') + '
+        return result[:-3]
