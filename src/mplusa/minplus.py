@@ -1,8 +1,10 @@
-import math
 import numpy as np
 
-from numbers import Real
+import math
 import string
+from numbers import Real
+
+from . import utils
 
 
 def add(*args) -> float:
@@ -137,7 +139,7 @@ def star(A : np.ndarray,
         unit_matrix(A.shape[0], A.shape[1]),
         A.copy()
     ]
-    for i in range(2, iterations):
+    for _ in range(2, iterations):
         series.append(add_matrices(series[-1], series[-2]))
         # Very basic check if the series is convergent.
         if abs(np.max(series[-1] - series[-2])) < eps:
@@ -150,48 +152,18 @@ def star(A : np.ndarray,
     return series[-1]
 
 
-class Polynomial:
-    """ A simple implementation of a single-variable tropical polynomial. """
-
-    def __init__(self, *coefficients) -> None:
-        for value in coefficients:
-            if not isinstance(value, Real) or value == -math.inf:
-                raise ValueError(
-                    'Minplus.Polynomial.__init__: coefficient value out of domain.'
-                )
-        self.coefficients = coefficients[::-1]
-
-    def __call__(self, x : float) -> float:
-        return add(*[mult(coefficient, power(x, i)) for i, coefficient in enumerate(self.coefficients)])
-
-    def get_lines(self) -> list[tuple]:
-        """ Returns the a and b values of standard linear functions building the polynomial in form of y = ax + b. """
-        return [(a, b) for a, b in enumerate(self.coefficients) if b < math.inf]
-
-    def get_hypersurface(self) -> list[float]:
-        lines = self.get_lines()
-        result = []
-        for (a, c) in lines:
-            for (b, d) in lines:
-                if a == b or c == d:
-                    continue
-                x = (d - c) / (a - b)
-                if a * x + c == self(x):
-                    result.append(x)
-        return list(set(result))
-
-
-class MultiVariablePolynomial:
+class MultivariatePolynomial:
+    """ An implementation of a tropical polynomial with multiple variables. """
 
     def __init__(self, coefficients : np.ndarray) -> None:
         if len(set(coefficients.shape)) > 1:
             raise ValueError('Coefficient matrix not square.')
         self.coefficients = coefficients
-        self.variable_count = len(self.coefficients.shape)
+        self.dimensions = len(self.coefficients.shape) + 1
         self._symbols = string.ascii_lowercase
 
     def __call__(self, *variables : float) -> float:
-        if len(variables) != self.variable_count:
+        if len(variables) != self.dimensions - 1:
             raise ValueError('The amount of variables and coefficients differs.')
         result = [math.inf]
         for indices, coefficient in np.ndenumerate(self.coefficients):
@@ -200,7 +172,7 @@ class MultiVariablePolynomial:
                 powers.append(power(variables[variable_index], i))
             result.append(mult(coefficient, *powers))
         result = add(*result)
-        return result
+        return float(result)
 
     def __str__(self) -> str:
         result = ''
@@ -218,3 +190,46 @@ class MultiVariablePolynomial:
                     result += ' * ' + self._symbols[variable_index]
             result += ') + '
         return result[:-3]
+
+    def get_hyperplanes(self) -> list:
+        """ Returns a list of coefficients of a linear equation for every hyperplane building the polynomial. """
+        result = []
+        for indices, coefficient in np.ndenumerate(self.coefficients):
+            if coefficient == math.inf:
+                continue
+            hyperplane = [float(coefficient)]
+            hyperplane.extend(indices)
+            hyperplane.append(1)  # The coefficient of the last dimension (e.g. Z in 3D)
+            result.append(
+                list(
+                    map(
+                        lambda x: int(x) if x.is_integer() else float(x),
+                        hyperplane
+                    )
+                )
+            )
+        return result
+
+
+class Polynomial(MultivariatePolynomial):
+    """ An implementation of a tropical polynomial with a single variable. """
+
+    def __init__(self, *coefficients) -> None:
+        for value in coefficients:
+            if not isinstance(value, Real) or value == -math.inf:
+                raise ValueError('Minplus.Polynomial.__init__: coefficient value out of domain.')
+        super().__init__(np.array(coefficients))
+
+    def get_line_intersections(self) -> list:
+        """ Returns a list of intersection points for the lines building the polynomial. """
+        result = []
+        lines = self.get_hyperplanes()  # Hyperplanes are lines in this case
+        for line in lines:  # Change the form of the equation to a + bx from a + bx + cy
+            line.pop()
+        lines = filter(lambda x: len(x) == 2, utils.powerset(lines))
+        for line_1, line_2 in lines:
+            point = [(line_2[0] - line_1[0]) / (line_1[1] - line_2[1])]
+            point.append(line_1[0] + line_1[1] * point[0])
+            result.append(tuple(point))
+        result = list(filter(lambda point: point[1] == self(point[0]), result))  # Filter out the points not belonging to the polynomial
+        return result
