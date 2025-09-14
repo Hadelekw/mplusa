@@ -1,11 +1,11 @@
 # MPlusA
 ---
-**MPlusA** is a small Python library for tropical algebra (also known as $(\min, +)$ and $(\max, +)$ algebra). It provides the definitions of basic operations on numbers and NumPy arrays, as well as a basic implementation of tropical polynomials.
+**MPlusA** is a small Python library for tropical algebra (also known as (min, +) and (max, +) algebra). It provides the definitions of basic operations on numbers and NumPy arrays, as well as a basic implementation of tropical polynomials.
 
 Any improvements or fixes are always welcome.
 
 ## How to use
-After having installed the library one can import one of the two modules the package consists of (`minplus` and `maxplus`) and use the full array of its capabilities. The functions are essentially the same between the modules. The list below is a full list of the library's capabilities.
+After having installed the library one can import one of the two modules the package consists of (`minplus` and `maxplus`) and use the full array of its capabilities. The functions are essentially the same between the modules.
 
 **`add(*args) -> Real`**
 	Tropical addition. Essentially an alias for Python's `min` function.
@@ -35,12 +35,14 @@ After having installed the library one can import one of the two modules the pac
 	Creates a tropical unit matrix of given width and height.
 
 **`star(A : np.ndarray) -> np.ndarray`**
-	Definition of a unique operator of tropical algebra, usually denoted as $\mathbf{A}^*$. It returns the value to which an infinite recursive sum of matrices converges. The input matrix has to be square and the series created in the process of calculating the value needs to be convergent.
+	Definition of an unary operator of unique to tropical algebra, usually denoted as $\mathbf{A}^*$. It returns the value to which an infinite recursive sum of matrices converges. The input matrix has to be square and the series created in the process of calculating the value needs to be convergent.
 
 **`Polynomial(*coefficients)`**
-	This is a class that implements basic single-variable tropical polynomials. Calling an object of this class allows to take a value the polynomial takes at a given point, it also implements function `get_hypersurface` which returns a list of its roots.
+	This is a class that implements basic single-variable tropical polynomials. Calling an object of this class allows to take a value the polynomial takes at a given point.
 
-### Example code
+For the full list of capabilities, refer to the [documentation](https://hadelekw.github.io/mplusa-docs.html)
+
+## Example code
 ```
 import numpy as np
 from mplusa import minplus
