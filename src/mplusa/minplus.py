@@ -118,10 +118,6 @@ def power_matrix(A : np.ndarray,
 
 def unit_matrix(width : int,
                 height : int) -> np.ndarray:
-    if width < 0 or height < 0:
-        raise ValueError(
-            'Minplus.unit_matrix: invalid width or height.'
-        )
     result = np.eye(width, height)
     result[result == 0] = math.inf
     result[result == 1] = 0
@@ -233,3 +229,14 @@ class Polynomial(MultivariatePolynomial):
             result.append(tuple(point))
         result = list(filter(lambda point: point[1] == self(point[0]), result))  # Filter out the points not belonging to the polynomial
         return result
+
+    def get_roots(self) -> tuple:
+        """ Returns lists of roots of the polynomial and of their respective ranks (count of monomials attaining the value). """
+        result = {}
+        points = self.get_line_intersections()
+        for point in points:
+            if not point[0] in result:
+                result[point[0]] = 1
+            else:
+                result[point[0]] += 1
+        return list(result.keys()), list(result.values())
