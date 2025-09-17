@@ -124,27 +124,18 @@ def unit_matrix(width : int,
     return result
 
 
-def star(A : np.ndarray,
-         iterations : int = 1000,
-         eps : float = 0.001) -> np.ndarray:
+def kleene_star(A : np.ndarray,
+         iterations : int = 1000) -> np.ndarray:
     if A.shape[0] != A.shape[1]:
-        raise ValueError(
-            'Minplus.star: matrix is not square.'
-        )
+        raise ValueError('Matrix is not square.')
     series = [
         unit_matrix(A.shape[0], A.shape[1]),
         A.copy()
     ]
-    for _ in range(2, iterations):
-        series.append(add_matrices(series[-1], series[-2]))
-        # Very basic check if the series is convergent.
-        if abs(np.max(series[-1] - series[-2])) < eps:
-            break
-    else:
-        raise ValueError(
-            'Minplus.star: the series for this matrix is not convergent ' +\
-            '(within the limits of iterations and decimal places).'
-        )
+    for _ in range(iterations):
+        series.append(add_matrices(series[-1], mult_matrices(series[-1], series[-2])))
+    if np.all(series[-1] != series[-2]):
+        raise ValueError('The series is not convergent.')
     return series[-1]
 
 
