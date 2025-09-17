@@ -2,34 +2,44 @@ import numpy as np
 
 import math
 import string
-from numbers import Real
 
 from . import utils
 
 
 def add(*args) -> float:
     if -math.inf in args:
-        raise ValueError(
-            'Minplus.add: value out of domain.'
-        )
+        raise ValueError('Value out of domain.')
     return min(args)
 
 
 def mult(*args) -> float:
     if -math.inf in args:
-        raise ValueError(
-            'Minplus.mult: value out of domain.'
-        )
+        raise ValueError('Value out of domain.')
     return sum(args) if math.inf not in args else math.inf
+
+
+def power(a : float,
+          k : int) -> float:
+    return mult(*[a for _ in range(k)])
+
+
+def modulo(a : float,
+           t : int) -> float:
+    if a < 0 or t < 0:
+        raise ValueError('The modulo operator is only defined for positive numbers.')
+    if a == math.inf:
+        return math.inf
+    if a == 0:
+        return 0
+    if t == math.inf or t == 0:
+        return a
+    return a - (a // t) * t
 
 
 def add_matrices(A : np.ndarray,
                  B : np.ndarray) -> np.ndarray:
     if A.shape != B.shape:
-        raise ValueError(
-            'Minplus.add_matrices: given matrices ' +\
-            'are of different shape (A: {}, B: {}).'.format(A.shape, B.shape)
-        )
+        raise ValueError('Given matrices have different shapes.')
     result = np.copy(A)
     shape = A.shape
     for i in range(shape[0]):
@@ -41,12 +51,7 @@ def add_matrices(A : np.ndarray,
 def mult_matrices(A : np.ndarray,
                   B : np.ndarray) -> np.ndarray:
     if A.shape[1] != B.shape[0]:
-        raise ValueError(
-            'Minplus.mult_matrices: given matrices ' +\
-            'are of shapes not given as MxN and NxP (A: {}, B: {}).'.format(
-                A.shape, B.shape
-            )
-        )
+        raise ValueError('Given matrices are not of MxN and NxP shapes.')
     result = np.zeros((A.shape[0], B.shape[1]))
     for i in range(A.shape[0]):
         for j in range(B.shape[1]):
@@ -54,65 +59,31 @@ def mult_matrices(A : np.ndarray,
     return result
 
 
-def modulo(a : float,
-           t : int) -> float:
-    if a < 0 or t < 0:
-        raise ValueError(
-            'Minplus.modulo: modulo operation is only defined for positive numbers.'
-        )
-    if a == math.inf:
-        return math.inf
-    if a == 0:
-        return 0
-    if t == math.inf or t == 0:
-        return a
-    return a - (a // t) * t
-
-
-def modulo_matrices(A : np.ndarray,
-                    b : np.ndarray) -> np.ndarray:
-    if b.shape[1] != 1:
-        raise ValueError(
-            'Minplus.modulo_matrices: given matrix b ' +\
-            'is not a vertical vector of shape Mx1 (has shape of {}).'.format(
-                b.shape
-            )
-        )
-    if A.shape[0] != b.shape[0]:
-        raise ValueError(
-            'Minplus.modulo_matrices: given matrix b ' +\
-            'does not have an Mx1 shape against MxN matrix A (A: {}, b: {}).'.format(
-                A.shape, b.shape
-            )
-        )
-    if np.any(A < 0) or np.any(b < 0):
-        raise ValueError(
-            'Minplus.modulo_matrices: matrices contain negative values.'
-        )
-    result = np.zeros(A.shape)
-    for i in range(A.shape[0]):
-        for j in range(A.shape[1]):
-            result[i, j] = modulo(A[i, j], b[i])
-    return result
-
-
-def power(a : float,
-          k : int) -> float:
-    return mult(*[a for _ in range(k)])
-
-
 def power_matrix(A : np.ndarray,
                  k : int) -> np.ndarray:
     if np.any(np.diagonal(A) != 0):
-        raise ValueError(
-            'Minplus.power_matrix: matrix contains non-zero values on the diagonal.'
-        )
+        raise ValueError('Matrix contains non-zero values on the diagonal.')
     if k == 0:
         result = unit_matrix(A.shape[0], A.shape[1])
     else:
         result = A.copy()
         for _ in range(k):
             result = mult_matrices(A, result)
+    return result
+
+
+def modulo_matrices(A : np.ndarray,
+                    b : np.ndarray) -> np.ndarray:
+    if b.shape[1] != 1:
+        raise ValueError('Given matrix b is not a vertical vector of shape Mx1')
+    if A.shape[0] != b.shape[0]:
+        raise ValueError('Given matrix b does not have an Mx1 shape against the MxN matrix A.')
+    if np.any(A < 0) or np.any(b < 0):
+        raise ValueError('Given matrices contain negative values.')
+    result = np.zeros(A.shape)
+    for i in range(A.shape[0]):
+        for j in range(A.shape[1]):
+            result[i, j] = modulo(A[i, j], b[i])
     return result
 
 
@@ -203,8 +174,8 @@ class Polynomial(MultivariatePolynomial):
 
     def __init__(self, *coefficients) -> None:
         for value in coefficients:
-            if not isinstance(value, Real) or value == -math.inf:
-                raise ValueError('Minplus.Polynomial.__init__: coefficient value out of domain.')
+            if not isinstance(value, float) or value == -math.inf:
+                raise ValueError('Coefficient value out of domain.')
         super().__init__(np.array(coefficients))
 
     def get_line_intersections(self) -> list:
