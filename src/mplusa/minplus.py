@@ -96,7 +96,7 @@ def unit_matrix(width : int,
 
 
 def kleene_star(A : np.ndarray,
-         iterations : int = 1000) -> np.ndarray:
+                iterations : int = 1000) -> np.ndarray:
     if A.shape[0] != A.shape[1]:
         raise ValueError('Matrix is not square.')
     series = [
@@ -105,8 +105,6 @@ def kleene_star(A : np.ndarray,
     ]
     for _ in range(iterations):
         series.append(add_matrices(series[-1], mult_matrices(series[-1], series[-2])))
-    if np.all(series[-1] != series[-2]):
-        raise ValueError('The series is not convergent.')
     return series[-1]
 
 
@@ -114,8 +112,6 @@ class MultivariatePolynomial:
     """ An implementation of a tropical polynomial with multiple variables. """
 
     def __init__(self, coefficients : np.ndarray) -> None:
-        if len(set(coefficients.shape)) > 1:
-            raise ValueError('Coefficient matrix not square.')
         self.coefficients = coefficients
         self.dimensions = len(self.coefficients.shape) + 1
         self._symbols = string.ascii_lowercase
@@ -174,7 +170,7 @@ class Polynomial(MultivariatePolynomial):
 
     def __init__(self, *coefficients) -> None:
         for value in coefficients:
-            if not isinstance(value, float) or value == -math.inf:
+            if not isinstance(value, float|int) or value == -math.inf:
                 raise ValueError('Coefficient value out of domain.')
         super().__init__(np.array(coefficients))
 
@@ -189,11 +185,11 @@ class Polynomial(MultivariatePolynomial):
             point = [(line_2[0] - line_1[0]) / (line_1[1] - line_2[1])]
             point.append(line_1[0] + line_1[1] * point[0])
             result.append(tuple(point))
-        result = list(filter(lambda point: point[1] == self(point[0]), result))  # Filter out the points not belonging to the polynomial
+        result = list(filter(lambda point: round(point[1], 8) == round(self(point[0]), 8), result))  # Filter out the points not belonging to the polynomial
         return result
 
     def get_roots(self) -> tuple:
-        """ Returns lists of roots of the polynomial and of their respective ranks (count of monomials attaining the value). """
+        """ Returns lists of roots of the polynomial and of their respective ranks (amount of monomials attaining the value). """
         result = {}
         points = self.get_line_intersections()
         for point in points:
