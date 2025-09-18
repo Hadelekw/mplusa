@@ -1,8 +1,8 @@
 [project]
 name = "mplusa"
-version = "0.0.2"
+version = "0.0.3"
 authors = [
-    {name="Maksymilian W.", email="maksymilian3563@gmail.com"}
+    {name="Maksymilian Wiekiera", email="maksymilian3563@gmail.com"}
 ]
 description = "A library for calculations in tropical and arctic semirings."
 readme = "README.md"
@@ -17,4 +17,5 @@ classifiers = [
 license = {file="LICENSE"}
 
 [project.urls]
-homepage = "https://github.com/Hadelekw/mplusa"
+homepage = "https://github.com/Hadelekw/mplusa",
+documentation = "https://hadelekw.github.io/mplusa-docs.html"
