@@ -3,18 +3,18 @@ import numpy as np
 import math
 import string
 
-from . import utils
+from .domain import validate_domain
+from .. import utils
 
 
-def add(*args) -> float:
-    if -math.inf in args:
-        raise ValueError('Value out of domain.')
+
+def add(*args : float) -> float:
+    validate_domain(args)
     return min(args)
 
 
-def mult(*args) -> float:
-    if -math.inf in args:
-        raise ValueError('Value out of domain.')
+def mult(*args : float) -> float:
+    validate_domain(args)
     return sum(args) if math.inf not in args else math.inf
 
 
@@ -25,6 +25,7 @@ def power(a : float,
 
 def modulo(a : float,
            t : int) -> float:
+    validate_domain([a, t])
     if a < 0 or t < 0:
         raise ValueError('The modulo operator is only defined for positive numbers.')
     if a == math.inf:
@@ -112,6 +113,7 @@ class MultivariatePolynomial:
     """ An implementation of a tropical polynomial with multiple variables. """
 
     def __init__(self, coefficients : np.ndarray) -> None:
+        validate_domain(coefficients)
         self.coefficients = coefficients
         self.dimensions = len(self.coefficients.shape) + 1
         self._symbols = string.ascii_lowercase
@@ -121,7 +123,7 @@ class MultivariatePolynomial:
             raise ValueError('The amount of variables and coefficients differs.')
         result = [math.inf]
         for indices, coefficient in np.ndenumerate(self.coefficients):
-            powers = []
+            powers : list[float] = []
             for variable_index, i in enumerate(indices):
                 powers.append(power(variables[variable_index], i))
             result.append(mult(coefficient, *powers))
@@ -145,7 +147,7 @@ class MultivariatePolynomial:
             result += ') + '
         return result[:-3]
 
-    def get_hyperplanes(self) -> list:
+    def get_hyperplanes(self) -> list[list[float|int]]:
         """ Returns a list of coefficients of a linear equation for every hyperplane building the polynomial. """
         result = []
         for indices, coefficient in np.ndenumerate(self.coefficients):
@@ -168,18 +170,16 @@ class MultivariatePolynomial:
 class Polynomial(MultivariatePolynomial):
     """ An implementation of a tropical polynomial with a single variable. """
 
-    def __init__(self, *coefficients) -> None:
-        for value in coefficients:
-            if not isinstance(value, float|int) or value == -math.inf:
-                raise ValueError('Coefficient value out of domain.')
+    def __init__(self, *coefficients : float|int) -> None:
+        validate_domain(coefficients)
         super().__init__(np.array(coefficients))
 
-    def get_line_intersections(self) -> list:
+    def get_line_intersections(self) -> list[list[float|int]]:
         """ Returns a list of intersection points for the lines building the polynomial. """
         result = []
         lines = self.get_hyperplanes()  # Hyperplanes are lines in this case
         for line in lines:  # Change the form of the equation to a + bx from a + bx + cy
-            line.pop()
+            _ = line.pop()
         lines = filter(lambda x: len(x) == 2, utils.powerset(lines))
         for line_1, line_2 in lines:
             point = [(line_2[0] - line_1[0]) / (line_1[1] - line_2[1])]
@@ -188,7 +188,7 @@ class Polynomial(MultivariatePolynomial):
         result = list(filter(lambda point: round(point[1], 8) == round(self(point[0]), 8), result))  # Filter out the points not belonging to the polynomial
         return result
 
-    def get_roots(self) -> tuple:
+    def get_roots(self) -> tuple[list[float|int], list[int]]:
         """ Returns lists of roots of the polynomial and of their respective ranks (amount of monomials attaining the value). """
         result = {}
         points = self.get_line_intersections()
