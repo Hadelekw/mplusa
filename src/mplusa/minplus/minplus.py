@@ -41,17 +41,22 @@ def add_matrices(A : np.ndarray,
                  B : np.ndarray) -> np.ndarray:
     if A.shape != B.shape:
         raise ValueError('Given matrices have different shapes.')
+    if len(A.shape) > 2:
+        raise NotImplementedError('Operation only defined for at most 2-dimensional arrays.')
     result = np.copy(A)
     shape = A.shape
     for i in range(shape[0]):
-        for j in range(shape[1]):
-            result[i, j] = add(result[i, j], B[i, j])
+        if len(shape) == 2:
+            for j in range(shape[1]):
+                result[i, j] = add(result[i, j], B[i, j])
+        else:
+            result[i] = add(result[i], B[i])
     return result
 
 
 def mult_matrices(A : np.ndarray,
                   B : np.ndarray) -> np.ndarray:
-    if A.shape[1] != B.shape[0]:
+    if A.shape[1] != B.shape[0] or len(A.shape) > 2:
         raise ValueError('Given matrices are not of MxN and NxP shapes.')
     result = np.zeros((A.shape[0], B.shape[1]))
     for i in range(A.shape[0]):
@@ -62,8 +67,6 @@ def mult_matrices(A : np.ndarray,
 
 def power_matrix(A : np.ndarray,
                  k : int) -> np.ndarray:
-    if np.any(np.diagonal(A) != 0):
-        raise ValueError('Matrix contains non-zero values on the diagonal.')
     if k == 0:
         result = unit_matrix(A.shape[0], A.shape[1])
     else:
@@ -104,16 +107,66 @@ def kleene_star(A : np.ndarray,
         unit_matrix(A.shape[0], A.shape[1]),
         A.copy()
     ]
-    for _ in range(iterations):
-        series.append(add_matrices(series[-1], mult_matrices(series[-1], series[-2])))
-    return series[-1]
+    result = add_matrices(series[0], series[1])
+    for i in range(iterations):
+        series.append(power_matrix(A, i))
+        result = add_matrices(result, series[-1])
+        if np.all(series[-1] - series[-2] > 0):  # If the values of the matrix are growing
+            break
+    return result
+
+
+def kleene_plus(A : np.ndarray,
+                iterations : int = 1000) -> np.ndarray:
+    if A.shape[0] != A.shape[1]:
+        raise ValueError('Matrix is not square.')
+    series = [A.copy()]
+    result = series[0]
+    for i in range(1, iterations):
+        series.append(power_matrix(A, i))
+        result = add_matrices(result, series[-1])
+        if np.all(series[-1] - series[-2] > 0):  # If the values of the matrix are growing
+            break
+    return result
+
+
+def power_algorithm(A : np.ndarray,
+                    x_0 : np.ndarray|None = None,
+                    iterations : int = 1000) -> tuple:
+    if x_0 is None:
+        x_0 = np.ones((A.shape[1], 1))
+    xs = [x_0]
+    for i in range(iterations):
+        xs.append(mult_matrices(A, xs[i]))
+        for j in range(len(xs) - 1):
+            if len(np.unique(xs[-1] - xs[j])) == 1:
+                p = len(xs) - 1
+                q = j
+                c = float(np.unique(xs[-1] - xs[j])[0])
+                return p, q, c, xs
+    raise ValueError(f'Unable to find the values using the power algorithm within {iterations} iterations.')
+
+
+def eigenvalue(A : np.ndarray) -> float:
+    p, q, c, _ = power_algorithm(A)
+    return c / (p - q)
+
+
+def eigenvector(A : np.ndarray) -> np.ndarray:
+    p, q, c, xs = power_algorithm(A)
+    eigenvalue = c / (p - q)
+    result = np.ones_like(xs[0]) * math.inf
+    for i in range(1, p - q + 1):
+        result = add_matrices(result, power(eigenvalue, (p - q - i)) + xs[q + i - 1])
+    return result
 
 
 class MultivariatePolynomial:
     """ An implementation of a tropical polynomial with multiple variables. """
 
     def __init__(self, coefficients : np.ndarray) -> None:
-        validate_domain(coefficients)
+        for row in coefficients:
+            validate_domain(row)
         self.coefficients = coefficients
         self.dimensions = len(self.coefficients.shape) + 1
         self._symbols = string.ascii_lowercase
@@ -189,7 +242,7 @@ class Polynomial(MultivariatePolynomial):
         return result
 
     def get_roots(self) -> tuple[list[float|int], list[int]]:
-        """ Returns lists of roots of the polynomial and of their respective ranks (amount of monomials attaining the value). """
+        """ Returns lists of roots of the polynomial and of their respective ranks (the amount of monomials attaining the value). """
         result = {}
         points = self.get_line_intersections()
         for point in points:
