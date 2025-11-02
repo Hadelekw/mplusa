@@ -165,8 +165,7 @@ class MultivariatePolynomial:
     """ An implementation of a tropical polynomial with multiple variables. """
 
     def __init__(self, coefficients : np.ndarray) -> None:
-        for row in coefficients:
-            validate_domain(row)
+        validate_domain(coefficients)
         self.coefficients = coefficients
         self.dimensions = len(self.coefficients.shape) + 1
         self._symbols = string.ascii_lowercase
