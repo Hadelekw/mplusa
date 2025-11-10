@@ -39,19 +39,7 @@ def modulo(a : float,
 
 def add_matrices(A : np.ndarray,
                  B : np.ndarray) -> np.ndarray:
-    if A.shape != B.shape:
-        raise ValueError('Given matrices have different shapes.')
-    if len(A.shape) > 2:
-        raise NotImplementedError('Operation only defined for at most 2-dimensional arrays.')
-    result = np.copy(A)
-    shape = A.shape
-    for i in range(shape[0]):
-        if len(shape) == 2:
-            for j in range(shape[1]):
-                result[i, j] = add(result[i, j], B[i, j])
-        else:
-            result[i] = add(result[i], B[i])
-    return result
+    return np.minimum(A, B)
 
 
 def mult_matrices(A : np.ndarray,
@@ -199,7 +187,7 @@ class MultivariatePolynomial:
             result += ') + '
         return result[:-3]
 
-    def get_hyperplanes(self) -> list[list[float|int]]:
+    def get_linear_hyperplanes(self) -> list[list[float|int]]:
         """ Returns a list of coefficients of a linear equation for every hyperplane building the polynomial. """
         result = []
         for indices, coefficient in np.ndenumerate(self.coefficients):
@@ -229,7 +217,7 @@ class Polynomial(MultivariatePolynomial):
     def get_line_intersections(self) -> list[list[float|int]]:
         """ Returns a list of intersection points for the lines building the polynomial. """
         result = []
-        lines = self.get_hyperplanes()  # Hyperplanes are lines in this case
+        lines = self.get_linear_hyperplanes()  # Hyperplanes are lines in this case
         for line in lines:  # Change the form of the equation to a + bx from a + bx + cy
             _ = line.pop()
         lines = filter(lambda x: len(x) == 2, utils.powerset(lines))
