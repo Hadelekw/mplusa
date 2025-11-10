@@ -17,10 +17,11 @@ class TropicalNumber(metaclass=TropicalNumberMeta):
     pass
 
 
-def validate_domain(values : Collection[Any]|np.ndarray) -> None:
-    if type(values) is np.ndarray:
-        if all(map(lambda x: isinstance(x, TropicalNumber), values.flatten())):
-            return
-    if all(map(lambda x: isinstance(x, TropicalNumber), values)):
+def validate_domain(value : Any) -> None:
+    if isinstance(value, Collection):
+        for item in value:
+            validate_domain(item)
+        return
+    if isinstance(value, TropicalNumber):
         return
     raise ValueError('Value out of domain.')
