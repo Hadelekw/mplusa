@@ -4,7 +4,7 @@ import math
 from collections.abc import Collection
 
 from .domain import validate_domain
-from .minplus import add_matrices
+from .minplus import add, mult, add_matrices, MultivariatePolynomial
 
 
 class Cone:
@@ -32,7 +32,30 @@ class Cone:
         return result
 
 
+def hyperplane_from_apex(point : Collection[float|int]) -> Hyperplane:
+    return Hyperplane(*[-coordinate for coordinate in point])
+
+
+class Hyperplane:
+    """ An implementation of a tropical hyperplane structure. """
+
+    def __init__(self, *coefficients : float) -> None:
+        validate_domain(coefficients)
+        self.coefficients = coefficients
+        self.dimension = len(coefficients)
+
+    def get_value(self, point : Collection[float]) -> float:
+        if len(point) != self.dimension:
+            raise ValueError('The amount of the point\'s coordinates and the coefficients differs.')
+        result = add(*[mult(c, p) for c, p in zip(self.coefficients, point)])
+        return result
+
+    def get_apex(self) -> tuple:
+        return tuple([-coefficient for coefficient in self.coefficients])
+
+
 class Polytope:
+    """ An implementation of a tropical polytope structure. """
 
     def __init__(self, *faces_collection : Collection, adjust_coordinate_dimensions : bool = True) -> None:
         self.structure = {}
@@ -42,11 +65,7 @@ class Polytope:
                     faces = [(0, *face) for face in faces]
                 validate_domain(faces)
             self.structure[rank] = faces
-        self._lift_vertices()
         self.dimension = len(self.structure) - 1
-
-    def _lift_vertices(self) -> None:
-        pass
 
     @property
     def vertices(self) -> list[tuple]:
@@ -62,7 +81,7 @@ class Polytope:
         return result
 
     def get_hyperplanes(self) -> list:
-        """ Returns a list of coefficients of the facet-defining hyperplanes. """
+        """ Returns a list of the facet-defining hyperplanes. """
         pass
 
     def get_apices(self) -> list:
