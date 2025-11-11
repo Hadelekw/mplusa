@@ -58,14 +58,23 @@ class Polytope:
     """ An implementation of a tropical polytope structure. """
 
     def __init__(self, *faces_collection : Collection, adjust_coordinate_dimensions : bool = True) -> None:
+        self.dimension = len(faces_collection) - 1
         self.structure = {}
         for rank, faces in enumerate(faces_collection):
             if not rank:
                 if adjust_coordinate_dimensions:
                     faces = [(0, *face) for face in faces]
+                self._validate_vertices_dimension(list(faces))
                 validate_domain(faces)
             self.structure[rank] = faces
-        self.dimension = len(self.structure) - 1
+
+    def _validate_vertices_dimension(self, vertices : list[Collection]) -> None:
+        pivot = len(vertices[0])
+        if pivot not in [self.dimension, self.dimension + 1]:
+            raise ValueError('Incorrect dimension of the vertices coordinates.')
+        for vertex in vertices:
+            if len(vertex) != pivot:
+                raise ValueError('Incorrect dimension of the vertices coordinates.')
 
     @property
     def vertices(self) -> list[tuple]:
