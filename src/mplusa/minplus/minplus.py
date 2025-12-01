@@ -79,6 +79,23 @@ def modulo_matrices(A : np.ndarray,
     return result
 
 
+def mult_arrays(A : np.ndarray,
+                B : np.ndarray) -> np.ndarray:
+    """
+    Performs tropical tensor multiplication of NumPy arrays of any shape.
+    The operation is defined as:
+
+    A_{i_0, ..., i_k} * B_{j_0, ..., j_k} = C_{i_0, ..., i_k, j_0, ..., j_k}
+
+    where each element of C is calculated by tropical multiplication of the values in the arrays.
+    """
+    result = np.zeros((*A.shape, *B.shape))
+    for i, value in np.ndenumerate(A):
+        for j, other_value in np.ndenumerate(B):
+            result[*i, *j] = mult(value, other_value)
+    return result
+
+
 def unit_matrix(width : int,
                 height : int) -> np.ndarray:
     result = np.eye(width, height)
