@@ -7,9 +7,15 @@ from .domain import validate_domain
 from .minplus import add, mult, add_matrices
 
 
-def point_type(point : Collection, vertices : Collection, indexing_start : int = 1) -> Collection:
+def project_point(point : tuple) -> tuple:
+    validate_domain(point)
+    return tuple((point[i] - point[0] for i in range(1, len(point))))
+
+
+def point_type(point : Collection, vertices : Collection, indexing_start : int = 0) -> Collection:
     result = [[] for _ in range(len(vertices))]
-    point = np.array(point); vertices = np.array(vertices)
+    point = np.array(point)
+    vertices = np.array(vertices)
     for i, vertex in enumerate(vertices):
         comparison = add(*(vertex - point))
         for j in range(len(vertex)):
@@ -18,8 +24,50 @@ def point_type(point : Collection, vertices : Collection, indexing_start : int =
     return result
 
 
-def hyperplane_from_apex(point : Collection[float|int]) -> Hyperplane:
-    return Hyperplane(*[-coordinate for coordinate in point])
+def tropical_vertices(points : Collection[Collection]) -> list:
+    W = []
+    for w in points:
+        Ts = point_type(w, list(filter(lambda v: v != w, points)))
+        for T in Ts:
+            if T == []:
+                W.append(w)
+                break
+    return W
+
+
+def line_segment(start_point : Collection, end_point : Collection, sort=True, unique=True) -> np.ndarray:
+    x = np.array(start_point)
+    y = np.array(end_point)
+    result = []
+    for i in range(len(x)):
+        if y[i] >= x[i]:
+            result.append(add_matrices((y[i] - x[i]) + x, y))
+        else:
+            result.append(add_matrices((x[i] - y[i]) + y, x))
+    result = list(map(tuple, result))
+    if unique:
+        result = list(set(result))
+    if sort:
+        result = sort_line_segment(result, tuple(start_point))
+    return np.array(result)
+
+
+def sort_line_segment(points : list[tuple], start_point : tuple) -> list:
+    points.remove(start_point)
+    stack = [start_point]
+    while points:
+        # The line segments in tropical geometry have limited slopes and are always convex
+        # Therefore the closest point (in Euclidean sense) is the next point in order
+        distances = {
+            math.sqrt(
+                sum(
+                    (p[i] - stack[-1][i])**2 for i in range(len(start_point))
+                )
+            ): p for p in points
+        }
+        stack.append(distances[min(distances.keys())])
+        points.remove(stack[-1])
+    return stack
 
 
 class Cone:
@@ -32,15 +80,15 @@ class Cone:
 
     def get_point(self, constants : Collection[float|int]) -> np.ndarray:
         if len(constants) != self.vector_count:
-            raise ValueError('The number of shift values not equal to the vector count.')
+            raise ValueError('The number of constants not equal the number of generators of the cone.')
         result = np.array([math.inf for _ in range(self.dimensions)])
         for constant, vector in zip(constants, self.vectors):
             result = add_matrices(result, vector + constant)  # Addition here is tropical multiplication
         return result
 
-    def sample_points(self, constants_groups : Collection[np.ndarray]) -> np.ndarray:
+    def sample_points(self, constants_collection : Collection[np.ndarray]) -> np.ndarray:
         result = []
-        grid = np.meshgrid(*constants_groups)
+        grid = np.meshgrid(*constants_collection)
         for constants in np.nditer(grid):
             result.append(self.get_point([float(s) for s in constants]))
         result = np.array(result)
@@ -65,26 +113,26 @@ class Hyperplane:
         return tuple([-coefficient for coefficient in self.coefficients])
 
 
-class Polytope:
+def hyperplane_from_apex(point : Collection[float|int]) -> Hyperplane:
+    return Hyperplane(*[-coordinate for coordinate in point])
+
+
+class AbstractPolytope:
     """ An implementation of a tropical polytope structure. """
 
-    def __init__(self, *faces_collection : Collection, adjust_coordinate_dimensions : bool = True) -> None:
-        self.dimension = len(faces_collection) - 1
+    def __init__(self, faces_collection : list, adjust_coordinate_dimensions : bool = False) -> None:
+        if adjust_coordinate_dimensions:
+            faces_collection[0] = [(0, *face) for face in faces_collection[0]]
+        self.dimension = len(faces_collection[0][0]) - 1  # The dimension is defined by the coordinates of the first point
         self.structure = {}
         for rank, faces in enumerate(faces_collection):
-            if not rank:
-                if adjust_coordinate_dimensions:
-                    faces = [(0, *face) for face in faces]
-                self._validate_vertices_dimension(list(faces))
-                validate_domain(faces)
+            validate_domain(faces)
             self.structure[rank] = np.array(faces)
+        self._validate_vertices_dimension()
 
-    def _validate_vertices_dimension(self, vertices : list[Collection]) -> None:
-        pivot = len(vertices[0])
-        if pivot not in [self.dimension, self.dimension + 1]:
-            raise ValueError('Incorrect dimension of the vertices\' coordinates.')
-        for vertex in vertices:
-            if len(vertex) != pivot:
+    def _validate_vertices_dimension(self) -> None:
+        for vertex in self.structure[0]:
+            if len(vertex) - 1 != self.dimension:
                 raise ValueError('Incorrect dimension of the vertices\' coordinates.')
 
     @property
@@ -109,28 +157,18 @@ class Polytope:
                 result[-1].append(self.vertices[identifier])
         return result
 
-    def get_line_segments(self, edge_index : int) -> np.ndarray:
+    def get_line_segments(self, edge_index : int, sort : bool = True) -> np.ndarray:
         """
         Returns a list of points belonging to a line segment of the polytope.
-        It is not necessarily sorted.
         """
-        result = []
-        x, y = self.edges[edge_index]
-        for i in range(len(x)):
-            if y[i] >= x[i]:
-                result.append(add_matrices((y[i] - x[i]) + x, y))
-            else:
-                result.append(add_matrices((x[i] - y[i]) + y, x))
-        return np.array(sorted(result, key=lambda x: x[-1] - x[-2]))
+        start_point, end_point = self.edges[edge_index]
+        return np.array(line_segment(start_point, end_point, sort=sort))
 
     def get_all_line_segments(self) -> list:
         result = []
         for i in range(len(self.structure[1])):
-            result.append(self.get_line_segments(i))
+            result.append(self.get_line_segments(i, sort=True))
         return result
-
-    def get_envelope(self) -> list:
-        pass
 
     def get_apices(self) -> np.ndarray:
         """ Returns an array of apices corresponding to the half-spaces defined by the facet-defining hyperplanes. """
@@ -142,3 +180,21 @@ class Polytope:
         for apex in self.get_apices():
             result.append(hyperplane_from_apex(apex))
         return result
+
+
+class Polytope(AbstractPolytope):
+
+    def __init__(self, points : list) -> None:
+        self.dimension = len(points[0]) - 1
+        faces_collection = []
+        for layer in range(self.dimension + 1):
+            if layer == 0:
+                faces_collection.append(points)
+            elif layer == 1:
+                faces_collection.append(list([d, d + 1 if d != len(points) - 1 else 0] for d in range(len(points))))
+        print(faces_collection)
+        super().__init__(faces_collection)
+
+
+class Polytope2D(AbstractPolytope):
+    pass

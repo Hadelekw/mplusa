@@ -18,13 +18,11 @@ def mult(*args : float) -> float:
     return sum(args) if math.inf not in args else math.inf
 
 
-def power(a : float,
-          k : int) -> float:
+def power(a : float, k : int) -> float:
     return mult(*[a for _ in range(k)])
 
 
-def modulo(a : float,
-           t : int) -> float:
+def modulo(a : float, t : int) -> float:
     validate_domain([a, t])
     if a < 0 or t < 0:
         raise ValueError('The modulo operator is only defined for positive numbers.')
@@ -37,13 +35,12 @@ def modulo(a : float,
     return a - (a // t) * t
 
 
-def add_matrices(A : np.ndarray,
-                 B : np.ndarray) -> np.ndarray:
+def add_matrices(A : np.ndarray, B : np.ndarray) -> np.ndarray:
+    validate_domain([A, B])
     return np.minimum(A, B)
 
 
-def mult_matrices(A : np.ndarray,
-                  B : np.ndarray) -> np.ndarray:
+def mult_matrices(A : np.ndarray, B : np.ndarray) -> np.ndarray:
     if A.shape[1] != B.shape[0] or len(A.shape) > 2:
         raise ValueError('Given matrices are not of MxN and NxP shapes.')
     result = np.zeros((A.shape[0], B.shape[1]))
@@ -53,8 +50,7 @@ def mult_matrices(A : np.ndarray,
     return result
 
 
-def power_matrix(A : np.ndarray,
-                 k : int) -> np.ndarray:
+def power_matrix(A : np.ndarray, k : int) -> np.ndarray:
     if k == 0:
         result = unit_matrix(A.shape[0], A.shape[1])
     else:
@@ -64,8 +60,7 @@ def power_matrix(A : np.ndarray,
     return result
 
 
-def modulo_matrices(A : np.ndarray,
-                    b : np.ndarray) -> np.ndarray:
+def modulo_matrices(A : np.ndarray, b : np.ndarray) -> np.ndarray:
     if b.shape[1] != 1:
         raise ValueError('Given matrix b is not a vertical vector of shape Mx1')
     if A.shape[0] != b.shape[0]:
@@ -79,8 +74,7 @@ def modulo_matrices(A : np.ndarray,
     return result
 
 
-def mult_arrays(A : np.ndarray,
-                B : np.ndarray) -> np.ndarray:
+def mult_arrays(A : np.ndarray, B : np.ndarray) -> np.ndarray:
     """
     Performs tropical tensor multiplication of NumPy arrays of any shape.
     The operation is defined as:
@@ -96,16 +90,14 @@ def mult_arrays(A : np.ndarray,
     return result
 
 
-def unit_matrix(width : int,
-                height : int) -> np.ndarray:
+def unit_matrix(width : int, height : int) -> np.ndarray:
     result = np.eye(width, height)
     result[result == 0] = math.inf
     result[result == 1] = 0
     return result
 
 
-def kleene_star(A : np.ndarray,
-                iterations : int = 1000) -> np.ndarray:
+def kleene_star(A : np.ndarray, iterations : int = 1000) -> np.ndarray:
     if A.shape[0] != A.shape[1]:
         raise ValueError('Matrix is not square.')
     series = [
@@ -121,8 +113,7 @@ def kleene_star(A : np.ndarray,
     return result
 
 
-def kleene_plus(A : np.ndarray,
-                iterations : int = 1000) -> np.ndarray:
+def kleene_plus(A : np.ndarray, iterations : int = 1000) -> np.ndarray:
     if A.shape[0] != A.shape[1]:
         raise ValueError('Matrix is not square.')
     series = [A.copy()]
@@ -135,9 +126,7 @@ def kleene_plus(A : np.ndarray,
     return result
 
 
-def power_algorithm(A : np.ndarray,
-                    x_0 : np.ndarray|None = None,
-                    iterations : int = 1000) -> tuple:
+def power_algorithm(A : np.ndarray, x_0 : np.ndarray|None = None, iterations : int = 1000) -> tuple:
     if x_0 is None:
         x_0 = np.ones((A.shape[1], 1))
     xs = [x_0]
@@ -250,7 +239,7 @@ class Polynomial(MultivariatePolynomial):
         result = {}
         points = self.get_line_intersections()
         for point in points:
-            if not point[0] in result:
+            if point[0] not in result:
                 result[point[0]] = 1
             else:
                 result[point[0]] += 1
