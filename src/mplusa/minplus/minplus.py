@@ -7,7 +7,6 @@ from .domain import validate_domain
 from .. import utils
 
 
-
 def add(*args : float) -> float:
     validate_domain(args)
     return min(args)
