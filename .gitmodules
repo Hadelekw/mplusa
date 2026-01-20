@@ -1,0 +1,6 @@
+[submodule "mplusa_docs"]
+	path = mplusa_docs
+	url = git@github.com:Hadelekw/mplusa_docs.git
+[submodule "docs"]
+	path = docs
+	url = git@github.com:Hadelekw/mplusa_docs.git
