@@ -19,7 +19,7 @@ def hasse_diagram(polytope : AbstractPolytope) -> None:
     for rank, layer in polytope.structure.items():
         points = []
         for i, connections in enumerate(layer):
-            x = (i * width) / (len(layer) - 1) if len(layer) > 1 else 0
+            x = (i * width) / (len(layer) - 1) if len(layer) > 1 else width / 2
             points.append((x, rank))
             if rank > 0:
                 for connection in connections:

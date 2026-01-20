@@ -41,7 +41,7 @@ def add_matrices(A : np.ndarray, B : np.ndarray) -> np.ndarray:
 
 
 def mult_matrices(A : np.ndarray, B : np.ndarray) -> np.ndarray:
-    if A.shape[1] != B.shape[0] or len(A.shape) > 2:
+    if A.shape[1] != B.shape[0]:
         raise ValueError('Given matrices are not of MxN and NxP shapes.')
     result = np.zeros((A.shape[0], B.shape[1]))
     for i in range(A.shape[0]):
