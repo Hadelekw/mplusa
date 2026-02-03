@@ -1,6 +1,6 @@
 [project]
 name = "mplusa"
-version = "0.0.3"
+version = "0.0.4"
 authors = [
     {name="Maksymilian Wiekiera", email="maksymilian3563@gmail.com"}
 ]
@@ -18,4 +18,4 @@ license = {file="LICENSE"}
 
 [project.urls]
 homepage = "https://github.com/Hadelekw/mplusa",
-documentation = "https://hadelekw.github.io/mplusa-docs.html"
+documentation = "http://maksymilian-wiekiera.fyi/mplusa/0.0.4.html"
