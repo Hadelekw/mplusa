@@ -96,7 +96,7 @@ def unit_matrix(width : int, height : int) -> np.ndarray:
     return result
 
 
-def kleene_star(A : np.ndarray, iterations : int = 1000) -> np.ndarray:
+def kleene_star(A : np.ndarray, iterations : int|None = None) -> np.ndarray:
     if A.shape[0] != A.shape[1]:
         raise ValueError('Matrix is not square.')
     series = [
@@ -104,6 +104,8 @@ def kleene_star(A : np.ndarray, iterations : int = 1000) -> np.ndarray:
         A.copy()
     ]
     result = add_matrices(series[0], series[1])
+    if iterations is None:
+        iterations = int(result.shape[0])
     for i in range(iterations):
         series.append(power_matrix(A, i))
         result = add_matrices(result, series[-1])
@@ -112,17 +114,44 @@ def kleene_star(A : np.ndarray, iterations : int = 1000) -> np.ndarray:
     return result
 
 
-def kleene_plus(A : np.ndarray, iterations : int = 1000) -> np.ndarray:
+def kleene_plus(A : np.ndarray, iterations : int|None = None) -> np.ndarray:
     if A.shape[0] != A.shape[1]:
         raise ValueError('Matrix is not square.')
     series = [A.copy()]
     result = series[0]
+    if iterations is None:
+        iterations = int(result.shape[0])
     for i in range(1, iterations):
         series.append(power_matrix(A, i))
         result = add_matrices(result, series[-1])
         if np.all(series[-1] - series[-2] > 0):  # If the values of the matrix are growing
             break
     return result
+
+
+def tdet(A : np.ndarray) -> float:
+    used = np.zeros(A.shape[0])
+    best = math.inf
+
+    def backtrack(row : int, current_sum : float) -> None|float:
+        nonlocal best
+        if row == A.shape[0]:
+            best = add(best, current_sum)
+            return
+        if current_sum >= best:
+            return
+        for column in range(A.shape[1]):
+            if not used[column]:
+                used[column] = 1
+                backtrack(row + 1, mult(current_sum, A[row][column]))
+                used[column] = 0
+
+    backtrack(0, 0)
+    return best
+
+
+def is_matrix_singular(A : np.ndarray) -> bool:
+    pass  # TODO
 
 
 def power_algorithm(A : np.ndarray, x_0 : np.ndarray|None = None, iterations : int = 1000) -> tuple:
