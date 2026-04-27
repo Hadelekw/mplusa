@@ -1,5 +1,6 @@
 import numpy as np
 
+from typing import Callable
 import math
 import string
 
@@ -109,8 +110,6 @@ def kleene_star(A : np.ndarray, iterations : int|None = None) -> np.ndarray:
     for i in range(iterations):
         series.append(power_matrix(A, i))
         result = add_matrices(result, series[-1])
-        if np.all(series[-1] - series[-2] > 0):  # If the values of the matrix are growing
-            break
     return result
 
 
@@ -124,8 +123,6 @@ def kleene_plus(A : np.ndarray, iterations : int|None = None) -> np.ndarray:
     for i in range(1, iterations):
         series.append(power_matrix(A, i))
         result = add_matrices(result, series[-1])
-        if np.all(series[-1] - series[-2] > 0):  # If the values of the matrix are growing
-            break
     return result
 
 
@@ -150,8 +147,11 @@ def tdet(A : np.ndarray) -> float:
     return best
 
 
-def is_matrix_singular(A : np.ndarray) -> bool:
-    pass  # TODO
+# TODO:
+# def is_matrix_singular
+# def matrix_rank_barvinok  <- unfortunately an NP-hard problem; approximate?
+# def matrix_rank_kapranov  <- requires symbolic calculations; decide what to do
+# def matrix_rank_tropical
 
 
 def power_algorithm(A : np.ndarray, x_0 : np.ndarray|None = None, iterations : int = 1000) -> tuple:
@@ -169,17 +169,78 @@ def power_algorithm(A : np.ndarray, x_0 : np.ndarray|None = None, iterations : i
     raise ValueError(f'Unable to find the values using the power algorithm within {iterations} iterations.')
 
 
-def eigenvalue(A : np.ndarray) -> float:
-    p, q, c, _ = power_algorithm(A)
-    return c / (p - q)
+def karp_algorithm(A : np.ndarray) -> float:
+    """ An implementation of Karp's algorithm for finding the minimum cycle mean. """
+    n = A.shape[0]
+    dp = np.zeros((n + 1, n))
+    for i in range(1, n + 1):
+        for j in range(n):
+            dp[i, j] = math.inf
+            for k in range(n):
+                if A[k, j] != math.inf:
+                    dp[i, j] = add(dp[i, j], mult(dp[i - 1, k], A[k, j]))
+    result = math.inf
+    for i in range(n):
+        for j in range(n):
+            if dp[n, i] < math.inf and dp[j, i] < math.inf:
+                if n != j:
+                    avg = (dp[n, i] - dp[j, i]) / (n - j)
+                    result = add(result, avg)
+    return result
 
 
-def eigenvector(A : np.ndarray) -> np.ndarray:
-    p, q, c, xs = power_algorithm(A)
-    eigenvalue = c / (p - q)
-    result = np.ones_like(xs[0]) * math.inf
-    for i in range(1, p - q + 1):
-        result = add_matrices(result, power(eigenvalue, (p - q - i)) + xs[q + i - 1])
+def kleene_star_algorithm(A : np.ndarray, column : int = 0) -> np.ndarray:
+    """ Returns a non-normalized eigenvector of a tropical matrix. """
+    l = karp_algorithm(A)  # the minimum tropical cycle mean -- assumed eigenvector
+    B = np.add(A, -l)
+    B_star = kleene_star(B)
+    return B_star[:, [column]]
+
+
+def modified_kleene_star_algorithm(A : np.ndarray) -> np.ndarray:
+    """ A modified version of the Kleene star algorithm which uses Kleene plus to locate the critical column. """
+    l = karp_algorithm(A)  # the minimum tropical cycle mean -- assumed eigenvector
+    B = np.add(A, -l)
+    B_star = kleene_star(B)
+    B_plus_diagonal = np.diagonal(kleene_plus(B))
+    return B_star[:, np.where(B_plus_diagonal == 0)[0]]
+
+
+def eigenvalue(A : np.ndarray, func : Callable = power_algorithm) -> float:
+    """ Calculate the eigenvalue of a matrix using one of the provided methods. """
+    if func.__name__ == 'power_algorithm':
+        p, q, c, _ = func(A)
+        return c / (p - q)
+    elif func.__name__ == 'karp_algorithm':
+        return func(A)
+    raise NotImplementedError('The provided function is not supported. Use one of the: power_algorithm, karp_algorihtm.')
+
+
+def normalize_vector(v : np.ndarray) -> np.ndarray:
+    """ Normalize a vector by substracting the minimal value. """
+    validate_domain(v)
+    if len(v.shape) == 1:
+        return v - add(*v)
+    elif len(v.shape) == 2:  # check for vertical vectors -- preferred in many calculations
+        if v.shape[1] == 1:
+            return v - add(*v[:, 0])
+    raise ValueError('Not a valid vector.')
+
+
+def eigenvector(A : np.ndarray, func : Callable = power_algorithm, func_kwargs : dict = {}, normalize : bool = True) -> np.ndarray:
+    """ Calculate the eigenvector of a matrix using one of the provided methods. """
+    if func.__name__ == 'power_algorithm':
+        p, q, c, xs = power_algorithm(A, **func_kwargs)
+        eigenvalue = c / (p - q)
+        result = np.ones_like(xs[0]) * math.inf
+        for i in range(1, p - q + 1):
+            result = add_matrices(result, power(eigenvalue, (p - q - i)) + xs[q + i - 1])
+    elif func.__name__ in ['kleene_star_algorithm', 'modified_kleene_star_algorithm']:
+        result = func(A, **func_kwargs)
+    else:
+        raise NotImplementedError('The provided function is not supported. Use one of the: power_algorithm, kleene_star_algorithm, modified_kleene_star_algorithm.')
+    if normalize:
+        return normalize_vector(result)
     return result
 
 
