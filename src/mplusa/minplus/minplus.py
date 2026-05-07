@@ -3,6 +3,7 @@ import numpy as np
 from typing import Callable
 import math
 import string
+import itertools
 
 from .domain import validate_domain
 from .. import utils
@@ -198,11 +199,46 @@ def tdet(A : np.ndarray) -> float:
     return best
 
 
+def is_matrix_singular(A : np.ndarray) -> bool:
+    """
+    Checks if a given matrix is tropically singular using a naive approach.
+    """
+    if A.shape[0] != A.shape[1]:
+        raise ValueError('The matrix must be square.')
+    min_value = tdet(A)
+    times_achieved = 0
+    columns = range(A.shape[1])
+    for p in itertools.permutations(columns):
+        value = mult(*[A[i, p[i]] for i in range(A.shape[0])])
+        if value == min_value:
+            times_achieved += 1
+            if times_achieved >= 2:
+                return True
+    return False
+
+
+def matrix_rank_tropical(A : np.ndarray) -> int|None:
+    """
+    A naive approach to calculating a tropical rank of a given matrix.
+    """
+    for r in range(min(A.shape) - 1, 2, -1):
+        rows_to_remove = A.shape[0] - r
+        columns_to_remove = A.shape[1] - r
+        rows_permutations = itertools.permutations(range(A.shape[0]), rows_to_remove)
+        columns_permutations = itertools.permutations(range(A.shape[1]), columns_to_remove)
+        for rows in rows_permutations:
+            for columns in columns_permutations:
+                print(rows, columns)
+                minor = A.copy()
+                minor = np.delete(minor, rows, 0)
+                minor = np.delete(minor, columns, 1)
+                if not is_matrix_singular(minor):
+                    return minor.shape[0]
+    return 1
+
 # TODO:
-# def is_matrix_singular
 # def matrix_rank_barvinok  <- unfortunately an NP-hard problem; approximate?
 # def matrix_rank_kapranov  <- requires symbolic calculations; decide what to do
-# def matrix_rank_tropical
 
 
 def power_algorithm(A : np.ndarray, x_0 : np.ndarray|None = None, iterations : int = 1000) -> tuple:
