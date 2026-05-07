@@ -50,7 +50,8 @@ def draw_polytope2D(
     vertices_marker : str = 'o',
     show_pseudovertices : bool = False,
     pseudovertices_color : str|None = None,
-    pseudovertices_marker : str = 'o') -> None:
+    pseudovertices_marker : str = 'o',
+    show : bool = False) -> None:
     """ Draws a given polytope on a 2-dimensional surface using matplotlib. """
     if polytope.dimension < 2:
         raise NotImplementedError('Projection of polytopes of lesser dimensions not implemented currently.')
@@ -84,14 +85,19 @@ def draw_polytope2D(
             [vertex[1] for vertex in line_segment],
             color=color
         )
+    if show:
+        plt.show()
 
 
 def draw_hyperplane2D(
     hyperplane : Hyperplane,
     color : str = 'black',
-    scale : float = 1) -> None:
+    scale : float = 1,
+    show : bool = False) -> None:
     """ Draws a given hyperplane on a 2-dimensional surface using matplotlib. """
     apex = project_point(hyperplane.get_apex())
     plt.plot([apex[0] - scale, apex[0]], [apex[1], apex[1]], color=color)
     plt.plot([apex[0] + scale, apex[0]], [apex[1] + scale, apex[1]], color=color)
     plt.plot([apex[0], apex[0]], [apex[1] - scale, apex[1]], color=color)
+    if show:
+        plt.show()
