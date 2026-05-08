@@ -19,7 +19,7 @@ When contributing code that is defined only for one of the algebras, it is appre
 The code style should follow the `PEP 8` standard. This is not a requirement but a suggestion. It is appreciated if the code has docstrings.
 
 ### Creating a pull request
-The pull request should contain a list with a brief description of changes to the library. The person assigned to it should be the main author of the library. If it's possible, one should provide sources which will allow for easier confirmation of the code's correctness. The branch to which the code will be merged should be the branch named after the future version of the library (currently it will be `0_0_5`) and the source branch should be deleted after the merge.
+The pull request should contain a list with a brief description of changes to the library. The person assigned to it should be the main author of the library. If it's possible, one should provide sources which will allow for easier confirmation of the code's correctness. The branch to which the code will be merged should be the branch named after the future version of the library (currently it will be `0_0_6`) and the source branch should be deleted after the merge.
 
 ## Attribution
 All people who will contribute a significant new part to the library and will express the desire to be included, will be noted as co-authors in the project's details.
