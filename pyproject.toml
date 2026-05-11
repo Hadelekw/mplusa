@@ -1,10 +1,10 @@
 [project]
 name = "mplusa"
-version = "0.0.4"
+version = "0.0.5"
 authors = [
     {name="Maksymilian Wiekiera", email="maksymilian3563@gmail.com"}
 ]
-description = "A library for calculations in tropical and arctic semirings."
+description = "A library for calculations in tropical algebra."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -17,5 +17,5 @@ classifiers = [
 license = {file="LICENSE"}
 
 [project.urls]
-homepage = "https://github.com/Hadelekw/mplusa",
-documentation = "http://maksymilian-wiekiera.fyi/mplusa/0.0.4.html"
+homepage = "https://github.com/Hadelekw/mplusa"
+documentation = "http://github.com/Hadelekw/mplusa"
