@@ -1,20 +1,20 @@
 import numpy as np
 
 from typing import Callable
-import math
 import string
 import itertools
 
+from .convention import *
 from .domain import validate_domain
 from .. import utils
 
 
 def add(*args : float) -> float:
     """
-    Tropical addition; performs validation and calculates the maximum value.
+    Tropical addition; performs validation and calulcates the extreme value.
     """
     validate_domain(args)
-    return max(args)
+    return ADD(args)
 
 
 def mult(*args : float) -> float:
@@ -22,7 +22,7 @@ def mult(*args : float) -> float:
     Tropical multiplication; performs validation and calculates the sum.
     """
     validate_domain(args)
-    return sum(args) if -math.inf not in args else -math.inf
+    return MULT(args) if ZERO not in args else ZERO
 
 
 def power(*args : float) -> float:
@@ -30,7 +30,7 @@ def power(*args : float) -> float:
     Tropical exponentiation; performs validation and calculates the product.
     """
     validate_domain(args)
-    return math.prod(args) if math.inf not in args else math.inf
+    return POW(args) if ZERO not in args else ZERO
 
 
 def modulo(a : float, t : int) -> float:
@@ -41,19 +41,19 @@ def modulo(a : float, t : int) -> float:
     validate_domain([a, t])
     if a < 0 or t < 0:
         raise ValueError('The modulo operator is only defined for positive numbers.')
-    if a in [-math.inf, 0] or t in [-math.inf, 0]:
+    if a in [ZERO, IDENTITY] or t in [ZERO, IDENTITY]:
         return a
     return a - (a // t) * t
 
 
 def add_matrices(*args : np.ndarray) -> np.ndarray:
     """
-    Tropical matrix addition; performs validation and calculates item-wise maximum of arrays.
+    Tropical matrix addition; performs validation and calculates item-wise extreme of arrays.
     """
     validate_domain(args)
     result = args[0]
     for A in args[1:]:
-        result = np.maximum(result, A)
+        result = ADD_MATRICES(result, A)
     return result
 
 
@@ -101,12 +101,12 @@ def modulo_matrices(A : np.ndarray, b : np.ndarray) -> np.ndarray:
 
 def mult_arrays(A : np.ndarray, B : np.ndarray) -> np.ndarray:
     """
-    Performs arctic tensor multiplication of NumPy arrays of any shape.
+    Performs tropical tensor multiplication of NumPy arrays of any shape.
     The operation is defined as:
 
     A_{i_0, ..., i_k} * B_{j_0, ..., j_k} = C_{i_0, ..., i_k, j_0, ..., j_k}
 
-    where each element of C is calculated by arctic multiplication of the values in the arrays.
+    where each element of C is calculated by tropical multiplication of the values in the arrays.
     """
     result = np.zeros((*A.shape, *B.shape))
     for i, value in np.ndenumerate(A):
@@ -120,8 +120,8 @@ def unit_matrix(width : int, height : int) -> np.ndarray:
     Generates a tropical unit matrix of a given width and height.
     """
     result = np.eye(width, height)
-    result[result == 0] = -math.inf
-    result[result == 1] = 0
+    result[result == 0] = ZERO
+    result[result == 1] = IDENTITY
     return result
 
 
@@ -180,14 +180,14 @@ def tdet(A : np.ndarray) -> float:
     Calculates the tropical determinant of a matrix.
     """
     used = np.zeros(A.shape[0])
-    best = -math.inf
+    best = ZERO
 
     def backtrack(row : int, current_sum : float) -> None|float:
         nonlocal best
         if row == A.shape[0]:
             best = add(best, current_sum)
             return
-        if current_sum <= best:
+        if not HARD_EXTREME_COMPARISON(current_sum, best):
             return
         for column in range(A.shape[1]):
             if not used[column]:
@@ -205,19 +205,19 @@ def is_matrix_singular(A : np.ndarray) -> bool:
     """
     if A.shape[0] != A.shape[1]:
         raise ValueError('The matrix must be square.')
-    max_value = tdet(A)
+    tdet_value = tdet(A)
     times_achieved = 0
     columns = range(A.shape[1])
     for p in itertools.permutations(columns):
         value = mult(*[A[i, p[i]] for i in range(A.shape[0])])
-        if value == max_value:
+        if value == tdet_value:
             times_achieved += 1
             if times_achieved >= 2:
                 return True
     return False
 
 
-def matrix_rank_tropical(A : np.ndarray) -> int:
+def matrix_rank_tropical(A : np.ndarray) -> int|None:
     """
     A naive approach to calculating a tropical rank of a given matrix.
     """
@@ -235,6 +235,10 @@ def matrix_rank_tropical(A : np.ndarray) -> int:
                 if not is_matrix_singular(minor):
                     return minor.shape[0]
     return 1
+
+# TODO:
+# def matrix_rank_barvinok  <- unfortunately an NP-hard problem; approximate?
+# def matrix_rank_kapranov  <- requires symbolic calculations; decide what to do
 
 
 def power_algorithm(A : np.ndarray, x_0 : np.ndarray|None = None, iterations : int = 1000) -> tuple:
@@ -257,20 +261,20 @@ def power_algorithm(A : np.ndarray, x_0 : np.ndarray|None = None, iterations : i
 
 def karp_algorithm(A : np.ndarray) -> float:
     """
-    An implementation of Karp's algorithm for finding the maximum cycle mean.
+    An implementation of Karp's algorithm for finding the extreme cycle mean.
     """
     n = A.shape[0]
     dp = np.zeros((n + 1, n))
     for i in range(1, n + 1):
         for j in range(n):
-            dp[i, j] = -math.inf
+            dp[i, j] = ZERO
             for k in range(n):
-                if A[k, j] != math.inf:
+                if A[k, j] != ZERO:
                     dp[i, j] = add(dp[i, j], mult(dp[i - 1, k], A[k, j]))
-    result = -math.inf
+    result = ZERO
     for i in range(n):
         for j in range(n):
-            if dp[n, i] > -math.inf and dp[j, i] > -math.inf:
+            if ZERO_COMPARISON([n, i]) and ZERO_COMPARISON([j, i]):
                 if n != j:
                     avg = (dp[n, i] - dp[j, i]) / (n - j)
                     result = add(result, avg)
@@ -281,7 +285,7 @@ def kleene_star_algorithm(A : np.ndarray, column : int = 0) -> np.ndarray:
     """
     Returns a non-normalized eigenvector of a tropical matrix.
     """
-    l = karp_algorithm(A)
+    l = karp_algorithm(A)  # the tropical cycle mean -- assumed eigenvector
     B = np.add(A, -l)
     B_star = kleene_star(B)
     return B_star[:, [column]]
@@ -291,11 +295,11 @@ def modified_kleene_star_algorithm(A : np.ndarray) -> np.ndarray:
     """
     A modified version of the Kleene star algorithm which uses Kleene plus to locate the critical column.
     """
-    l = karp_algorithm(A)
+    l = karp_algorithm(A)  # the tropical cycle mean -- assumed eigenvector
     B = np.add(A, -l)
     B_star = kleene_star(B)
     B_plus_diagonal = np.diagonal(kleene_plus(B))
-    return B_star[:, np.where(B_plus_diagonal == 0)[0]]
+    return B_star[:, np.where(B_plus_diagonal == IDENTITY)[0]]
 
 
 def eigenvalue(A : np.ndarray, func : Callable = power_algorithm) -> float:
@@ -303,21 +307,21 @@ def eigenvalue(A : np.ndarray, func : Callable = power_algorithm) -> float:
     Calculate the eigenvalue of a matrix using one of the provided methods.
     """
     if func.__name__ == 'power_algorithm':
-        p, q, c, _ = power_algorithm(A)
+        p, q, c, _ = func(A)
         return c / (p - q)
     elif func.__name__ == 'karp_algorithm':
         return func(A)
-    raise NotImplementedError('The provided function is not supported. Use on of the: power_algorithm, karp_algorithm.')
+    raise NotImplementedError('The provided function is not supported. Use one of the: power_algorithm, karp_algorihtm.')
 
 
 def normalize_vector(v : np.ndarray) -> np.ndarray:
     """
-    Normalize a vector by substracting the maximal value.
+    Normalize a vector by substracting the extreme value.
     """
     validate_domain(v)
     if len(v.shape) == 1:
         return v - add(*v)
-    elif len(v.shape) == 2:
+    elif len(v.shape) == 2:  # check for vertical vectors -- preferred in many calculations
         if v.shape[1] == 1:
             return v - add(*v[:, 0])
     raise ValueError('Not a valid vector.')
@@ -328,12 +332,12 @@ def eigenvector(A : np.ndarray, func : Callable = power_algorithm, func_kwargs :
     Calculate the eigenvector of a matrix using one of the provided methods.
     """
     if func.__name__ == 'power_algorithm':
-        p, q, c, xs = power_algorithm(A)
+        p, q, c, xs = power_algorithm(A, **func_kwargs)
         eigenvalue = c / (p - q)
-        result = np.ones_like(xs[0]) * math.inf
+        result = np.ones_like(xs[0]) * ZERO
         for i in range(1, p - q + 1):
             result = add_matrices(result, power(eigenvalue, (p - q - i)) + xs[q + i - 1])
-    if func.__name__ in ['kleene_star_algorithm', 'modified_kleene_star_algorithm']:
+    elif func.__name__ in ['kleene_star_algorithm', 'modified_kleene_star_algorithm']:
         result = func(A, **func_kwargs)
     else:
         raise NotImplementedError('The provided function is not supported. Use one of the: power_algorithm, kleene_star_algorithm, modified_kleene_star_algorithm.')
@@ -356,7 +360,7 @@ class MultivariatePolynomial:
     def __call__(self, *variables : float) -> float:
         if len(variables) != self.dimensions - 1:
             raise ValueError('The amount of variables and coefficients differs.')
-        result = [-math.inf]
+        result = [ZERO]
         for indices, coefficient in np.ndenumerate(self.coefficients):
             powers : list[float] = []
             for variable_index, i in enumerate(indices):
@@ -370,10 +374,10 @@ class MultivariatePolynomial:
         for indices, coefficient in np.ndenumerate(self.coefficients):
             if coefficient.is_integer():
                 result += '(' + str(int(coefficient))
-            elif coefficient > -math.inf:
+            elif ZERO_COMPARISON(coefficient):
                 result += '(' + str(coefficient)
             else:
-                result += '(-∞'
+                result += '(∞'
             for variable_index, i in enumerate(indices):
                 if i > 1:
                     result += ' * ' + self._symbols[variable_index] + '^' + str(i)
@@ -388,7 +392,7 @@ class MultivariatePolynomial:
         """
         result = []
         for indices, coefficient in np.ndenumerate(self.coefficients):
-            if coefficient == -math.inf:
+            if coefficient == ZERO:
                 continue
             hyperplane = [float(coefficient)]
             hyperplane.extend(indices)

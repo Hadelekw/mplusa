@@ -3,13 +3,31 @@ import numpy as np
 import math
 from collections.abc import Collection
 
+from .convention import ZERO
 from .domain import validate_domain
 from .maxplus import add, mult, add_matrices
 
 
 def project_point(point : tuple) -> tuple:
+    """
+    Projects a tropical point onto R^n.
+    """
     validate_domain(point)
-    return tuple((point[i] - point[0]) for i in range(1, len(point)))
+    return tuple((point[i] - point[0] for i in range(1, len(point))))
+
+
+def sym_dist(point: tuple, other_point : tuple) -> float:
+    """
+    Calculates the symmetric tropical distance between two points.
+    """
+    return max(*[point[i] - other_point[i] for i in range(len(point))]) - add(*[point[i] - other_point[i] for i in range(len(point))])
+
+
+def asym_dist(point : tuple, other_point : tuple) -> float:
+    """
+    Calculates the asymmetric tropical distance between two points.
+    """
+    return mult(*[other_point[i] - point[i] for i in range(len(point))]) - len(point) * min(*[other_point[i] - point[i] for i in range(len(point))])
 
 
 def point_type(point : Collection, vertices : Collection, indexing_start : int = 0) -> Collection:
@@ -79,7 +97,7 @@ class ConvexCone:
     def get_point(self, constants : Collection[float|int]) -> np.ndarray:
         if len(constants) != self.vector_count:
             raise ValueError('The number of constants not equal the number of generators of the cone.')
-        result = np.array([-math.inf for _ in range(self.dimensions)])
+        result = np.array([ZERO for _ in range(self.dimensions)])
         for constant, vector in zip(constants, self.vectors):
             result = add_matrices(result, vector + constant)  # Addition here is tropical multiplication
         return result

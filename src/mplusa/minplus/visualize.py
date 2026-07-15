@@ -1,11 +1,12 @@
-import matplotlib.pyplot as plt
-from matplotlib.ticker import MaxNLocator
-
 from .geometry import AbstractPolytope, Hyperplane, project_point
 
 
 def hasse_diagram(polytope : AbstractPolytope) -> None:
-    """ Draws and shows the Hasse diagram of the given polytope using matplotlib. """
+    """
+    Draws and shows the Hasse diagram of the given polytope using matplotlib.
+    """
+    import matplotlib.pyplot as plt
+    from matplotlib.ticker import MaxNLocator
     _, ax = plt.subplots()
     ax.set_xticks([])
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
@@ -52,7 +53,10 @@ def draw_polytope2D(
     pseudovertices_color : str|None = None,
     pseudovertices_marker : str = 'o',
     show : bool = False) -> None:
-    """ Draws a given polytope on a 2-dimensional surface using matplotlib. """
+    """
+    Draws a given polytope on a 2-dimensional surface using matplotlib.
+    """
+    import matplotlib.pyplot as plt
     if polytope.dimension < 2:
         raise NotImplementedError('Projection of polytopes of lesser dimensions not implemented currently.')
     if polytope.dimension != 2:
@@ -94,7 +98,10 @@ def draw_hyperplane2D(
     color : str = 'black',
     scale : float = 1,
     show : bool = False) -> None:
-    """ Draws a given hyperplane on a 2-dimensional surface using matplotlib. """
+    """
+    Draws a given hyperplane on a 2-dimensional surface using matplotlib.
+    """
+    import matplotlib.pyplot as plt
     apex = project_point(hyperplane.get_apex())
     plt.plot([apex[0] - scale, apex[0]], [apex[1], apex[1]], color=color)
     plt.plot([apex[0] + scale, apex[0]], [apex[1] + scale, apex[1]], color=color)
